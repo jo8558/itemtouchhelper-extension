@@ -102,6 +102,8 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
      */
     public static final int ANIMATION_TYPE_DRAG = 1 << 3;
 
+    public static final String SWIPE_PARENT = "swipe_parent";
+
     private static final String TAG = "ItemTouchHelper";
 
     private static final boolean DEBUG = false;
@@ -182,6 +184,8 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
      * Developer callback which controls the behavior of ItemTouchHelper.
      */
     Callback mCallback;
+
+    AnimationCallback mAnimationCallback;
 
     /**
      * Current mode.
@@ -420,6 +424,9 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 mRecoverAnimations.clear();
+                if (mAnimationCallback != null) {
+                    mAnimationCallback.itemAnimationCloseEnd();
+                }
             }
         });
 
@@ -485,7 +492,12 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
      * @param callback The Callback which controls the behavior of this touch helper.
      */
     public ItemTouchHelperExtension(Callback callback) {
+        this(callback, null);
+    }
+
+    public ItemTouchHelperExtension(Callback callback, @Nullable AnimationCallback animationCallback) {
         mCallback = callback;
+        mAnimationCallback = animationCallback;
     }
 
     private static boolean hitTest(View child, float x, float y, float left, float top) {
@@ -1925,6 +1937,20 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
          */
         public View getItemFrontView(ViewHolder viewHolder) {
             if (viewHolder == null) return null;
+
+            if (viewHolder.itemView instanceof ViewGroup) {
+                ViewGroup viewGroup = (ViewGroup) viewHolder.itemView;
+                for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                    View view = viewGroup.getChildAt(i);
+                    if (view.getTag() != null && view.getTag() instanceof String) {
+                        String tag = (String) view.getTag();
+                        if (tag.equals(SWIPE_PARENT)) {
+                            return view;
+                        }
+                    }
+                }
+            }
+
             if (viewHolder.itemView instanceof ViewGroup && ((ViewGroup) viewHolder.itemView).getChildCount() > 1) {
                 ViewGroup viewGroup = (ViewGroup) viewHolder.itemView;
                 return viewGroup.getChildAt(viewGroup.getChildCount() - 1);
@@ -2464,7 +2490,8 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
         public void update() {
             /*if (mStartDx == mTargetX) {
 //                mX = ViewCompat.getTranslationX(mViewHolder.itemView);
-            } else */{
+            } else */
+            {
                 mX = mStartDx + mFraction * (mTargetX - mStartDx);
             }
             if (mStartDy == mTargetY) {
@@ -2504,6 +2531,10 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
         public void onAnimationRepeat(Animator animation) {
 
         }
+    }
+
+    public interface AnimationCallback {
+        void itemAnimationCloseEnd();
     }
 
     public void setClickToRecoverAnimation(boolean clickToRecoverAnimation) {

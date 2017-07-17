@@ -8,6 +8,7 @@ import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.MotionEventCompat;
@@ -1938,25 +1939,42 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
         public View getItemFrontView(ViewHolder viewHolder) {
             if (viewHolder == null) return null;
 
-            if (viewHolder.itemView instanceof ViewGroup) {
-                ViewGroup viewGroup = (ViewGroup) viewHolder.itemView;
-                for (int i = 0; i < viewGroup.getChildCount(); i++) {
-                    View view = viewGroup.getChildAt(i);
-                    if (view.getTag() != null && view.getTag() instanceof String) {
-                        String tag = (String) view.getTag();
-                        if (tag.equals(SWIPE_PARENT)) {
-                            return view;
-                        }
-                    }
+            View found = scanViewsRecursively(viewHolder.itemView);
+
+            if (found == null) {
+                if (viewHolder.itemView instanceof ViewGroup && ((ViewGroup) viewHolder.itemView).getChildCount() > 1) {
+                    ViewGroup viewGroup = (ViewGroup) viewHolder.itemView;
+                    return viewGroup.getChildAt(viewGroup.getChildCount() - 1);
+                } else {
+                    return viewHolder.itemView;
+                }
+            } else {
+                return found;
+            }
+        }
+
+        private View scanViewsRecursively(@NonNull View view) {
+            if (view.getTag() != null && view.getTag() instanceof String) {
+                String tag = (String) view.getTag();
+                if (tag.equals(SWIPE_PARENT)) {
+                    return view;
                 }
             }
 
-            if (viewHolder.itemView instanceof ViewGroup && ((ViewGroup) viewHolder.itemView).getChildCount() > 1) {
-                ViewGroup viewGroup = (ViewGroup) viewHolder.itemView;
-                return viewGroup.getChildAt(viewGroup.getChildCount() - 1);
-            } else {
-                return viewHolder.itemView;
+            if (!(view instanceof ViewGroup)) {
+                return null;
             }
+
+            ViewGroup parent = (ViewGroup) view;
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                View child = parent.getChildAt(i);
+                View found = scanViewsRecursively(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+            return null;
+
         }
 
         /**

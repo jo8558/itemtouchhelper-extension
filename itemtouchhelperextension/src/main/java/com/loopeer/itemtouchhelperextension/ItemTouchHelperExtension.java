@@ -105,6 +105,8 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
 
     public static final String SWIPE_PARENT = "swipe_parent";
 
+    public static final String ACTION_PARENT = "action_parent";
+
     private static final String TAG = "ItemTouchHelper";
 
     private static final boolean DEBUG = false;
@@ -746,6 +748,11 @@ public class ItemTouchHelperExtension extends RecyclerView.ItemDecoration
     private float getSwipeWidth() {
         if (mSelected instanceof Extension) {
             return ((Extension) mSelected).getActionWidth();
+        } else {
+            View actionParent = mSelected.itemView.findViewWithTag(ACTION_PARENT);
+            if (actionParent != null) {
+                return actionParent.getWidth();
+            }
         }
         return mRecyclerView.getWidth();
     }
